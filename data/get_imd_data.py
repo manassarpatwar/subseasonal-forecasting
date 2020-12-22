@@ -1,5 +1,8 @@
 import requests
 from tqdm import tqdm
+from cdo import Cdo
+
+cdo = Cdo()
 
 def create_ctl_temp(year=1901):
     days = 366 if year % 4 == 0 else 365
@@ -18,19 +21,19 @@ def create_ctl_temp(year=1901):
 
 def create_ctl_rain(year=1901):
     days = 366 if year % 4 == 0 else 365
-    template = """DSET .\tmp.grd
-                    TITLE 0.25 degr analyzed grids
-                    UNDEF -999.0
-                    XDEF 135 LINEAR 66.5 0.25
-                    YDEF 129 LINEAR 6.5 0.25
-                    ZDEF 1 linear 1 1
-                    * CHANGE TDEF TO 366 FOR LEAP YEARS
-                    TDEF {days} LINEAR 1jan{year} 1DY
-                    VARS 1
-                    rf 0 99 GRIDDED RAINFALL
-                    ENDVARS""".format(year=year, days=days)
-    with open('tmp.ctl', 'wb') as file:
-        file.write(template)
+    template = """DSET ./tmp.grd
+TITLE 0.25 degr analyzed grids
+UNDEF -999.0
+XDEF 135 LINEAR 66.5 0.25
+YDEF 129 LINEAR 6.5 0.25
+ZDEF 1 linear 1 1
+* CHANGE TDEF TO 366 FOR LEAP YEARS
+TDEF {days} LINEAR 1jan{year} 1DY
+VARS 1
+rf 0 99 GRIDDED RAINFALL
+ENDVARS""".format(year=year, days=days)
+    with open('tmp.ctl', 'w') as ctl:
+        ctl.write(template)
 
 def main():
     url = "http://imdpune.gov.in/Clim_Pred_LRF_New/rainfall.php" #big file test
@@ -45,7 +48,7 @@ def main():
             file.write(data)
     progress_bar.close()
     create_ctl_rain(year=2019)
-    cdo.import_binary(input = os.path.join(ctl_root, var, fn))
+    cdo.import_binary(input = 'tmp.grd', output='output.nc')
 
 
 
