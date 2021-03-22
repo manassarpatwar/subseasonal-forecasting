@@ -1,3 +1,11 @@
+# Data
+data/imd
+data/ncmrwf
+data/interpolated
+data/processed
+
+*.out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
