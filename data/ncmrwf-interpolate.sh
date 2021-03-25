@@ -1,4 +1,4 @@
-start=1980
+start=1979
 end=2019
 for ((i = $start; i <= $end; i++))
 do
