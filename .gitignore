@@ -4,6 +4,8 @@ data/ncmrwf
 data/interpolated
 data/processed
 data/dataframes
+wandb
+models
 
 *.out
 
