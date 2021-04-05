@@ -1,3 +1,5 @@
 srun --account=dcs-acad3 --partition=dcs-acad -c 4 --mem=16G --pty /bin/bash -i
 
 srun --account=dcs-acad3 --partition=dcs-acad -c 4 --nodes=1 --gpus-per-node=1 --mem=16G --pty /bin/bash -i
+module load cuDNN/7.6.4.38-gcccuda-2019b
+module load Anaconda3/2019.07; source activate dissertation

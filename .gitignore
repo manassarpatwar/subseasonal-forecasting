@@ -6,6 +6,7 @@ data/processed
 data/dataframes
 wandb
 models
+images/
 
 *.out
 
