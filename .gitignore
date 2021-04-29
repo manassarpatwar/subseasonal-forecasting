@@ -1,11 +1,13 @@
 # Data
-data/imd
-data/ncmrwf
-data/interpolated
-data/processed
-data/dataframes
+data/imd/*
+data/ncmrwf/*
+data/interpolated/*
+data/processed/*
+data/dataframes/*
+data/forecast_rodeo/*
 wandb
-models
+models/model_saves
+models/logs
 images/
 
 *.out

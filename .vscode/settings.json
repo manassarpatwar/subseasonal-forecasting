@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/home/aca18mms/.conda/envs/dissertation/bin/python"
+    "python.pythonPath": "/home/aca18mms/.conda/envs/dissertation/bin/python",
+    "jupyter.jupyterServerType": "local"
 }
