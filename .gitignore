@@ -4,7 +4,7 @@ data/ncmrwf/*
 data/interpolated/*
 data/processed/*
 data/dataframes/*
-data/forecast_rodeo/*
+data/rodeo/*
 wandb
 models/model_saves
 models/logs

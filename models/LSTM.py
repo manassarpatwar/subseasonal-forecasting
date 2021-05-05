@@ -3,11 +3,12 @@ from tensorflow.keras.layers import Input, TimeDistributed, Dense, Conv2D, LSTM,
 from tensorflow.keras.models import Model
 import tensorflow.keras.backend as K
 
-def build_model(lookback, spatial_grid_shape, batch_size, spatial_features, temporal_features, target_shape, model_name, print_summary=True):
-    spatial_input = Input(shape=[lookback.length(), *spatial_grid_shape, len(spatial_features)], batch_size=batch_size, name='spatial_input')
+
+def build_model(lookback, spatial_grid_shape, spatial_features, temporal_features, target_shape, model_name, print_summary=True):
+    spatial_input = Input(shape=[lookback.length(), *spatial_grid_shape, len(spatial_features)], name='spatial_input')
     spatial_flatten = TimeDistributed(Flatten(name='spatial_flatten'))(spatial_input)
     
-    temporal_input = Input(shape=[lookback.length(), len(temporal_features)], batch_size=batch_size, name='temporal_input')
+    temporal_input = Input(shape=[lookback.length(), len(temporal_features)], name='temporal_input')
     temporal_flatten = TimeDistributed(Flatten(name='temporal_flatten'))(temporal_input)
 
     concat = K.concatenate([spatial_flatten, temporal_flatten], axis=-1) if temporal_features else spatial_flatten
@@ -20,4 +21,4 @@ def build_model(lookback, spatial_grid_shape, batch_size, spatial_features, temp
     if print_summary:
         print(model.summary())
 
-    return (model), 'lstm'
+    return (model)

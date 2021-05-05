@@ -47,35 +47,35 @@ Index| Features      |Format             |Description
 
 from zipfile import ZipFile
 import os
-from preprocess import get_train_data
+from preprocess import *
 from utils import Lookback
 
+norm = True
 
-TARGET_MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12]
-TARGET_FEATURE = 'temp'
-HORIZON = 21 #21 days
-LOOKBACK = Lookback(past=28)
-BATCH_SIZE = 256
-SPATIAL_FEATURES=['rf','temp', 'pres', 'slp', 'rhum']
-TEMPORAL_FEATURES=[]
-MODEL_NAME = f"{TARGET_FEATURE}-{HORIZON}-{LOOKBACK}"
+# df = pd.read_hdf('data/rodeo/gt-contest_tmp2m-14d-1979-2018.h5')
+# df = df.set_index('start_date')
+# df = df.sort_values(['start_date', 'lat', 'lon'])
+# df = get_rodeo_spatial_dataframe()
+TARGET_FEATURE = 'tmp2m'
+df, _, _, _ = get_train_data(target_months=[1,2,3,4,5,6,7,8,9,10,11,12], horizon=7, lookback=Lookback(past=0), spatial_features=[TARGET_FEATURE], target_feature=TARGET_FEATURE, split=[1979, 2020, 2020,2020], dataset='RODEO', temporal_features=[])
+norm = False
 
-AVERAGE = True
-df, temporal, target, spatial_grid_shape = get_train_data(target_months=TARGET_MONTHS, target_feature=TARGET_FEATURE, 
-        horizon=HORIZON, lookback=LOOKBACK, spatial_features=SPATIAL_FEATURES, temporal_features=TEMPORAL_FEATURES, split=(1979, 2011, 2016, 2020), average=AVERAGE)
-# df = pd.read_hdf('data/processed/spatial-2-week-avg.h5')
-# df = df.loc[(df['lat'] == lat_lon[0]) & (df['lon'] == lat_lon[1])]
-# df, _, _, _ = get_train_data(target_feature=target, lat_lon=lat_lon)
+# df = pd.read_hdf('data/dataframes/temp-14d-avg.h5')
+# TARGET_FEATURE = 'temp'
+
+(lat, lon) = df.set_index(['lat', 'lon']).dropna().sample(1).index[0]
+print(lat, lon)
+df = df.loc[(df['lat'] == 41.0) & (df['lon'] == 241.0)]
 
 split_fraction = 0.715
 train_split = int(split_fraction * int(df.shape[0]))
 step = 1
 
-past = 28
-future = 21
+past = 1
+future = 36
 learning_rate = 0.001
 batch_size = 256
-epochs = 10
+epochs = 50
 
 
 def normalize(data, train_split):
@@ -89,12 +89,13 @@ We can see from the correlation heatmap, few parameters like Relative Humidity a
 Specific Humidity are redundant. Hence we will be using select features, not all.
 """
 
-selected_features = ['rf','temp', 'pres', 'slp', 'rhum']
+selected_features = [TARGET_FEATURE]
 features = df[selected_features]
 features.head()
 
-# features = normalize(features, train_split)
-# features.head()
+if norm:
+    features = normalize(features, train_split)
+features.head()
 
 train_data = features.iloc[0 : train_split - 1]
 val_data = features.iloc[train_split:]
@@ -163,7 +164,7 @@ print("Target shape:", targets.numpy().shape)
 
 inputs = keras.layers.Input(shape=(inputs.shape[1], inputs.shape[2]))
 lstm_out = keras.layers.LSTM(32)(inputs)
-outputs = keras.layers.Dense(1, activation='linear')(lstm_out)
+outputs = keras.layers.Dense(1)(lstm_out)
 
 model = keras.Model(inputs=inputs, outputs=outputs)
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate), loss="mse", metrics=['cosine_similarity'])

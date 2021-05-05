@@ -57,7 +57,11 @@ class Lookback:
             dates = past+[start]+future+dates
 
         mask = pd.date_range(start=dates[0], end=dates[-1], freq='D').isin(dates)
-        return slice(dates[0], dates[-1]), mask
+        # return slice(dates[0], dates[-1]), mask
+        return dates, mask
+
+def inverse(value, mean, std):
+    return value*std+mean
 
 def get_image(values, grid_shape, mask):
     image = np.empty(grid_shape).flatten()
@@ -69,4 +73,14 @@ def get_image(values, grid_shape, mask):
 
 def visualise_prediction(prediction, ground_truth, grid_shape, mask):
     return get_image(prediction, grid_shape, mask), get_image(ground_truth, grid_shape, mask)
-    
+
+def normalize(df, vmin=-1, vmax=1):
+    return (vmax-vmin)*((df-df.min())/(df.max()-df.min()))+vmin
+
+def get_labelY(target_feature):
+    labels = {'rf': 'Rainfall in mm', 'temp': 'Temperature in ° Celcius', 'tmp2m': 'Temperature in ° Celcius'}
+    return labels[target_feature]
+
+def get_feature_name(feature):
+    labels = {'rf': 'rainfall', 'temp': 'temperature', 'tmp2m': 'temperature'}
+    return labels[feature]

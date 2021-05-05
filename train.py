@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 from preprocess import get_train_data
-from utils import Lookback, visualise_prediction
+from utils import Lookback, visualise_prediction, inverse, get_image, normalize, get_labelY, get_feature_name
 import os
 import matplotlib.pyplot as plt
+import pandas as pd
+import scipy
 
 import tensorflow as tf
 import datetime
@@ -14,30 +16,36 @@ from tensorflow import keras
 from tensorflow.keras.layers import Input, TimeDistributed, Dense, Conv2D, LSTM, Flatten, Reshape, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.metrics import CosineSimilarity
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from sklearn.utils import shuffle
 import wandb
 from wandb.keras import WandbCallback
 
-from models.LSTM import build_model
+import importlib
+
+os.environ['WANDB_DIR'] = os.path.join('/', 'fastdata', 'aca18mms')
+
+
 wandb.login()
 
-TARGET_MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12]
-TARGET_FEATURE = 'temp'
-HORIZON = 21 #21 days
-# LOOKBACK = Lookback(past=14)
-# LOOKBACK = Lookback(past=[7, 14, 28], future=[7, 14, 28], years=2)
-LOOKBACK = Lookback(past=28)
-BATCH_SIZE = 256
-SPATIAL_FEATURES=['rf','temp', 'pres', 'slp', 'rhum']
-# SPATIAL_FEATURES=[TARGET_FEATURE]
-# TEMPORAL_FEATURES=['phase_cos', 'phase_sin', 'mei', 'iod', 'amplitude']
-TEMPORAL_FEATURES=[]
-MODEL_NAME = f"{TARGET_FEATURE}-{HORIZON}-{LOOKBACK}"
 
-AVERAGE = True
-spatial, temporal, target, spatial_grid_shape = get_train_data(target_months=TARGET_MONTHS, target_feature=TARGET_FEATURE, 
-        horizon=HORIZON, lookback=LOOKBACK, spatial_features=SPATIAL_FEATURES, temporal_features=TEMPORAL_FEATURES, split=(1979, 2011, 2016, 2020), average=AVERAGE)
+hyperparameters = {
+    "target_months": [1,2,3,4,5,6,7,8,9,10,11,12],
+    "target_feature": 'tmp2m',
+    "horizon": 7,
+    "lookback": {},
+    "learning_rate": 0.001,
+    "epochs": 10,
+    "batch_size": 256,
+    "patience": 10,
+    "loss_function": "mse",
+    "architecture": "Linear",
+    "spatial_features": ['tmp2m'],
+    "temporal_features": [],
+    "dataset": "RODEO"
+}
+
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
@@ -95,84 +103,118 @@ class DataGenerator(keras.utils.Sequence):
             
             if len(self.temporal.columns):
                 temporal_tensor = self.temporal.loc[dates].to_numpy()
-                temporal_input[i,] = temporal_tensor.reshape(-1, *self.temporal_dim)[mask,:,:]
+                temporal_input[i,] = temporal_tensor.reshape(-1, *self.temporal_dim)[mask,:]
             # Store ground truth
-            y[i] = self.target.loc[[date]].to_numpy()
+            y[i] = self.target.loc[date].to_numpy()
 
         return {'spatial_input': spatial_input, 'temporal_input': temporal_input}, y
 
 if __name__ == '__main__':
-    train_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['train'], lookback=LOOKBACK, horizon=HORIZON, spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], batch_size=BATCH_SIZE)
 
-    model, architechture = build_model(lookback=LOOKBACK, spatial_grid_shape=spatial_grid_shape, spatial_features=SPATIAL_FEATURES, temporal_features=TEMPORAL_FEATURES, target_shape=target['shape'], batch_size=BATCH_SIZE, model_name=MODEL_NAME)
+    run = wandb.init(project='dissertation',
+                    config=hyperparameters)
 
-    run = wandb.init(project='subseasonal-forecasting',
-                    name=f"{MODEL_NAME}-{architechture}{'-avg' if AVERAGE else ''}",
-                    config={
-                        "learning_rate": 0.001,
-                        "epochs": 10,
-                        "batch_size": BATCH_SIZE,
-                        "patience": 10,
-                        "loss_function": "mse",
-                        "architecture": architechture,
-                        "dataset": "IMD-IMDAA",
-                        "spatial": SPATIAL_FEATURES,
-                        "temporal": TEMPORAL_FEATURES,
-                        "target months": TARGET_MONTHS,
-                        "average": AVERAGE
-                    })
     config = wandb.config
 
-    ## Early stopping
-    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0.00001, patience=config.patience, restore_best_weights=True)  # val_loss
+    lookback = Lookback(**config['lookback'])
+    MODEL_NAME = f"{config['target_feature']}-{config['horizon']}-{lookback}"
+    wandb.run.name = f"{wandb.run.id}-{MODEL_NAME}-{config['architecture']}"
+
+    spatial, temporal, target, spatial_grid_shape = get_train_data(target_months=config['target_months'], target_feature=config['target_feature'], 
+        horizon=config['horizon'], lookback=lookback, spatial_features=config['spatial_features'], temporal_features=config['temporal_features'], split=[1979, 2011, 2016, 2020], dataset=config['dataset'])
+        
+    train_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['train'], lookback=lookback, horizon=config['horizon'], spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], batch_size=config['batch_size'])
+
+    build_model = importlib.import_module(f"models.{config['architecture']}").build_model
+    model = build_model(lookback=lookback, spatial_grid_shape=spatial_grid_shape, spatial_features=config['spatial_features'], temporal_features=config['temporal_features'], target_shape=target['shape'], model_name=MODEL_NAME)
+
+    # Early stopping
+    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0.00001, patience=config['patience'], restore_best_weights=True)  # val_loss
 
     # Automatically save latest best model to file
-    filepath = os.path.join("models", "model_saves", architechture, f"{MODEL_NAME}.h5")
+    filepath = os.path.join(wandb.run.dir, "model-best.h5")
     checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=0, save_best_only=True, mode='min')
 
-    log_dir = os.path.join("models", "logs", architechture)
-    tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
+    # log_dir = os.path.join("models", "logs", config['architecture'])
+    # tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
     # Set callbacks
-    callbacks_list = [checkpoint, earlystopping, WandbCallback(), tensorboard]
+    callbacks_list = [earlystopping, checkpoint, WandbCallback()]
 
-    model.compile(loss=config.loss_function, optimizer=Adam(learning_rate=config.learning_rate), metrics=["cosine_similarity"])
+    model.compile(loss=config['loss_function'], optimizer=Adam(learning_rate=config['learning_rate']), metrics=[CosineSimilarity(axis=1)])
 
-    validation_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['validation'], lookback=LOOKBACK, horizon=HORIZON, spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], batch_size=BATCH_SIZE)
-    model.fit(train_generator, epochs=config.epochs, callbacks=callbacks_list, validation_data=validation_generator)
+    validation_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['validation'], lookback=lookback, horizon=config['horizon'], spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], batch_size=config['batch_size'])
+    model.fit(train_generator, epochs=config['epochs'], callbacks=callbacks_list, validation_data=validation_generator)
 
-    test_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['test'], lookback=LOOKBACK, horizon=HORIZON, spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], batch_size=BATCH_SIZE, shuffle=False)
+    test_generator = DataGenerator(spatial=spatial, temporal=temporal, target=target['test'], lookback=lookback, horizon=config['horizon'], spatial_grid_shape=spatial_grid_shape, target_shape=target['shape'], shuffle=False)
    
     predictions = model.predict(test_generator)
+    ground_truth = test_generator.ground_truth
+
+    temporal_cosine_similarity = np.diag(1-scipy.spatial.distance.cdist(predictions.T, ground_truth.T, 'cosine'))
+    temporal_image = get_image(temporal_cosine_similarity, spatial_grid_shape, target['mask'])
+    fig = plt.figure()
+    ax = plt.axes()
+    ax.axis('off')
+    im = ax.imshow(temporal_image, vmin=-1.0, vmax=1.0, cmap='PiYG')
+    bar = plt.colorbar(im, fraction=0.046, pad=0)
+    plt.title(f"{config['architecture']} temporal similarity")
+    temporal_image =  wandb.Image(plt)
+    plt.clf()
+
+    target_dates = test_generator.target_dates
+
+    ground_truth = pd.melt(pd.DataFrame(ground_truth, index=target_dates, columns=target['locations']), ignore_index=False, value_name=config['target_feature'])
+    predictions = pd.melt(pd.DataFrame(predictions, index=target_dates, columns=target['locations']), ignore_index=False, value_name=config['target_feature'])
     
-    plots = []
-    # fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    ground_truth['gt'] = (ground_truth*target['std'] + target['mean']).dropna(how='all')[config['target_feature']].to_numpy()
+    ground_truth = ground_truth.rename(columns={config['target_feature']: "norm-gt"})
+
+    predictions['pred'] = (predictions*target['std'] + target['mean']).dropna(how='all')[config['target_feature']].to_numpy()
+    predictions = predictions.rename(columns={config['target_feature']: "norm-pred"})
+
+    spatial_results = ground_truth.merge(predictions, left_on=['start_date', 'lat', 'lon'], right_on=['start_date', 'lat', 'lon'], how='inner')
+    spatial_results = spatial_results.sort_values(by=['start_date', 'lat', 'lon'])            
+
+    spatial_plots = []
     plt.figure(figsize=(15,5))
+    for year in spatial_results.index.year.unique():
+        temporal_plots = []
+        for (lat, lon) in target['locations'][25::10]:
+            spatial_result = spatial_results.loc[(spatial_results['lat'] == lat) & (spatial_results['lon'] == lon)]
+            plt.plot(spatial_result.loc[str(year), 'gt'], label=f"gt")
+            plt.plot(spatial_result.loc[str(year), 'pred'], label=f"pred")
+            plt.ylabel(get_labelY(config['target_feature']))
+            plt.legend()
+            plt.title(f"{get_feature_name(config['target_feature']).capitalize()} prediction at {lat}°N {lon}°E in {year}")
+            temporal_plots.append(wandb.Image(plt))
+            plt.clf()
+        wandb.log({f"temporal predictions in {year}": temporal_plots})
 
-    for prediction, ground_truth, date in zip(predictions[::21], test_generator.ground_truth, test_generator.target_dates):
-        # p, g = visualise_prediction(prediction, ground_truth, spatial_grid_shape, target['mask'])
-        # vmin = min(p.min(), g.min())
-        # vmax = max(p.max(), g.max())
+    fig = plt.figure()
+    ax = plt.axes()
+    ax.axis('off')
 
-        # ax[0].imshow(p, vmin=vmin, vmax=vmax)
-        # ax[0].set_title(f"{TARGET_FEATURE}-pred {date.date()}")
+    monthly_dates = target_dates.to_period('M').unique().to_timestamp().shift(14, freq='D')
+    for date in monthly_dates:
+        result = spatial_results.loc[date]
+        loss = result['gt']-result['pred']
+        loss = loss.abs()/result['gt']
+        im = ax.imshow(get_image(loss.to_numpy(), spatial_grid_shape, target['mask']), cmap='Reds')
+        ax.axis('off')
+        plt.title(f"{get_feature_name(config['target_feature']).capitalize()} prediction error on {date.date()}")
+        bar = plt.colorbar(im, fraction=0.046, pad=0)
+        spatial_plots.append(wandb.Image(plt))
+        plt.cla()
+        bar.remove()
 
-        # im = ax[1].imshow(g, vmin=vmin, vmax=vmax)
-        # ax[1].set_title(f"{TARGET_FEATURE}-gt {date.date()}")
-       
-        # bar = fig.colorbar(im, ax=ax)
+    [test_loss, test_cosine_similarity] = model.evaluate(test_generator)
+    print(test_loss, test_cosine_similarity)
+    wandb.run.summary["run id"] = wandb.run.id
+    wandb.run.summary["test loss"] = test_loss
+    wandb.run.summary["test spatial cosine similarity"]= test_cosine_similarity
 
-        # images.append(wandb.Image(plt))
-        
-        # bar.remove()
-        # plt.cla()
-        plt.plot(prediction, label=f"{TARGET_FEATURE}-pred {date.date()}")
-        plt.plot(ground_truth, label=f"{TARGET_FEATURE}-gt {date.date()}")
-        plt.legend()
-        plt.xlabel('Target locations')
-        plots.append(wandb.Image(plt))
-        plt.clf()
+   
 
-    wandb.log({f"spatio-temporal predictions": plots})
-    evaluation = model.evaluate(test_generator)
-    print(evaluation)
+    wandb.log({"spatial predictions": spatial_plots,
+                "temporal cosine similarity": temporal_image})
