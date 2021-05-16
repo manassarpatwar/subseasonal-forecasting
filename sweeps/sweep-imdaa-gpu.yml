@@ -1,30 +1,26 @@
 program: train.py
 method: grid
 metric:
-  goal: minimize
-  name: val_loss
+  goal: maximize
+  name: val_cosine_similarity
 parameters:
-  learning_rate:
-    max: 0.003
-    min: 0.0005
-    distribution: uniform
   target_months:
-    values: [[6,7,8,9], [1,2,3,4,5,6,7,8,9,10,11,12]]
+    values: [[1,2,3,4,5,6,7,8,9,10,11,12]]
     distribution: categorical
+  batch_size:
+    value: 128
+  learning_rate:
+    value: 0.0005
+  epochs:
+    value: 25
   horizon:
     values: [1, 14, 28]
     distribution: categorical
   target_feature:
-    values:
-      - rf
+    values: [tmp2m, precip]
     distribution: categorical
   architecture:
-    values:
-      - Linear
-      - FNN
-      - CNN
-      - LSTM
-      - CNNLSTM
+    values: [CNN, CNNLSTM]
     distribution: categorical
   lookback:
     values: 
@@ -36,8 +32,10 @@ parameters:
         years: 2
     distribution: categorical
   spatial_features:
-    values: [[rf], [rf ,temp, pres, slp, rhum]]
+    values: [[precip, tmp2m, rhum, slp, pres]]
     distribution: categorical
   temporal_features:
-    values: [[], ['phase_cos', 'phase_sin', 'mei', 'iod', 'amplitude']]
+    values: [[phase, amplitude, phase_cos, phase_sin, mei, iod]]
     distribution: categorical
+  dataset:
+    value: IMDAA

@@ -13,8 +13,9 @@ def build_model(lookback, spatial_grid_shape, spatial_features, temporal_feature
     concat = K.concatenate([spatial_flatten, temporal_flatten], axis=-1) if temporal_features else spatial_flatten
     
     fnn = Dense(units=1024, name='hidden1')(concat)
-    fnn = Dense(units=1024, name='hidden2')(concat)
-
+    fnn = Dropout(0.4)(fnn)
+    fnn = Dense(units=1024, name='hidden2')(fnn)
+    fnn = Dropout(0.2)(fnn)
     output = Dense(units=target_shape, name='target_output', activation='linear')(fnn)
     model = Model(inputs=[spatial_input, temporal_input], outputs=[output], name=model_name)
 

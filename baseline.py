@@ -51,13 +51,21 @@ from preprocess import *
 from utils import Lookback
 
 norm = True
+step = 1
+
+past = 1
+future = 28
+learning_rate = 0.001
+batch_size = 256
+epochs = 50
+split_fraction = 0.715
 
 # df = pd.read_hdf('data/rodeo/gt-contest_tmp2m-14d-1979-2018.h5')
 # df = df.set_index('start_date')
 # df = df.sort_values(['start_date', 'lat', 'lon'])
 # df = get_rodeo_spatial_dataframe()
 TARGET_FEATURE = 'tmp2m'
-df, _, _, _ = get_train_data(target_months=[1,2,3,4,5,6,7,8,9,10,11,12], horizon=7, lookback=Lookback(past=0), spatial_features=[TARGET_FEATURE], target_feature=TARGET_FEATURE, split=[1979, 2020, 2020,2020], dataset='RODEO', temporal_features=[])
+df, _, _, _ = get_train_data(target_months=[1,2,3,4,5,6,7,8,9,10,11,12], horizon=future, lookback=Lookback(past=0), spatial_features=[TARGET_FEATURE], target_feature=TARGET_FEATURE, dataset='RODEO', temporal_features=[])
 norm = False
 
 # df = pd.read_hdf('data/dataframes/temp-14d-avg.h5')
@@ -65,17 +73,10 @@ norm = False
 
 (lat, lon) = df.set_index(['lat', 'lon']).dropna().sample(1).index[0]
 print(lat, lon)
-df = df.loc[(df['lat'] == 41.0) & (df['lon'] == 241.0)]
+df = df.loc[(df['lat'] == lat) & (df['lon'] == lon)]
 
-split_fraction = 0.715
 train_split = int(split_fraction * int(df.shape[0]))
-step = 1
 
-past = 1
-future = 36
-learning_rate = 0.001
-batch_size = 256
-epochs = 50
 
 
 def normalize(data, train_split):
@@ -163,8 +164,8 @@ print("Target shape:", targets.numpy().shape)
 """
 
 inputs = keras.layers.Input(shape=(inputs.shape[1], inputs.shape[2]))
-lstm_out = keras.layers.LSTM(32)(inputs)
-outputs = keras.layers.Dense(1)(lstm_out)
+# lstm_out = keras.layers.LSTM(32)(inputs)
+outputs = keras.layers.Dense(1, 'linear')(inputs)
 
 model = keras.Model(inputs=inputs, outputs=outputs)
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate), loss="mse", metrics=['cosine_similarity'])

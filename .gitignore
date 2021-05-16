@@ -2,9 +2,12 @@
 data/imd/*
 data/ncmrwf/*
 data/interpolated/*
-data/processed/*
+data/processed/*.h5
+data/processed/climatology/*.h5
 data/dataframes/*
 data/rodeo/*
+data/climatology/*
+data/merged/*
 wandb
 models/model_saves
 models/logs

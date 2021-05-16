@@ -1,7 +1,7 @@
 gridtype = lonlat
-xsize    = 34
-ysize    = 32
-xfirst   = 67
+xsize    = 29
+ysize    = 29
+xfirst   = 69
 xinc     = 1
-yfirst   = 7
+yfirst   = 9
 yinc     = 1

@@ -1,6 +1,7 @@
 from collections import namedtuple
 import pandas as pd
 import numpy as np
+import config
 
 # Lookback(past=[7, 14, 28], future=[7, 14, 28], years=2)
 class Lookback:
@@ -33,16 +34,17 @@ class Lookback:
 
         past = self.past[-1] if len(self.past) > 0 else 0
         min_date = min_date+pd.DateOffset(years=self.years, days=(past+horizon))
-        target_date = max(min_date, pd.Timestamp(f"{int(start_year)+self.years}-{start_month}-01"))
+        target_date = max(min_date, pd.Timestamp(f"{start_year.year+self.years}-{start_month}-01"))
 
         return target_date
     
-    def split_years(self, split):
-        split = list(map(str, split))
-        train_years = slice(split[0], split[1])
-        validation_years = slice(split[1], split[2])
-        test_years = slice(split[2], split[3])
-
+    def split_years(self, split, horizon):
+        assert len(split) == 4, "Invalid split provided"
+        years = list(map(str, split))
+        years = list(map(pd.Timestamp, years))
+        train_years = slice(years[0], years[1]-pd.DateOffset(days=horizon))
+        validation_years = slice(years[1], years[2]-pd.DateOffset(days=horizon))
+        test_years = pd.date_range(years[2], years[3], freq='W')
         return train_years, validation_years, test_years
 
     def dates(self, date, horizon):
@@ -57,8 +59,7 @@ class Lookback:
             dates = past+[start]+future+dates
 
         mask = pd.date_range(start=dates[0], end=dates[-1], freq='D').isin(dates)
-        # return slice(dates[0], dates[-1]), mask
-        return dates, mask
+        return slice(dates[0], dates[-1]), mask
 
 def inverse(value, mean, std):
     return value*std+mean
@@ -77,10 +78,17 @@ def visualise_prediction(prediction, ground_truth, grid_shape, mask):
 def normalize(df, vmin=-1, vmax=1):
     return (vmax-vmin)*((df-df.min())/(df.max()-df.min()))+vmin
 
-def get_labelY(target_feature):
-    labels = {'rf': 'Rainfall in mm', 'temp': 'Temperature in ° Celcius', 'tmp2m': 'Temperature in ° Celcius'}
+def get_label(target_feature):
+    labels = {'precip': 'Rainfall anomaly in mm', 'tmp2m': 'Temperature anomaly in ° Celcius'}
     return labels[target_feature]
 
 def get_feature_name(feature):
-    labels = {'rf': 'rainfall', 'temp': 'temperature', 'tmp2m': 'temperature'}
+    labels = {'precip': 'rainfall', 'tmp2m': 'temperature'}
     return labels[feature]
+
+def dataset_data(dataset):
+    if dataset.upper() == 'IMDAA':
+        return config.IMDAA
+    elif dataset.upper() == 'RODEO':
+        return config.RODEO
+    return None

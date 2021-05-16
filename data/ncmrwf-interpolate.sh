@@ -7,3 +7,5 @@ done
 
 cdo mergetime interpolated/imdaa_reanl_$1_*-1x1.nc interpolated/imdaa_reanl_$1-1x1.nc
 rm interpolated/imdaa_reanl_$1_*-1x1.nc
+# Calculate rolling 14 day mean
+RUNSTAT_DATE='last' cdo runmean,14 interpolated/imdaa_reanl_$1-1x1.nc interpolated/imdaa_reanl_$1-1x1-14d.nc
