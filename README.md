@@ -114,3 +114,10 @@ The code was implemented using python 3.7.10 using Anaconda 4.7.10 and uses the 
   By default the training files are saved in the temporary directory on bessemer.
   You can change the storage location by changing line 31 in train.py
   Wandb also ignores and does not upload the model to the server to save space. Comment line 33 to modify that.
+
+  ## Author
+  Manas Sarpatwar
+  19/05/2021
+  
+  ## Acknowledgements
+  I would like to thank my supervisor, Dr. Aditya Gilra for his kind help and support throughout this project. I would also like to thank Dr. Sreejith O.P and Dr. Rajib     Chattopadhyay from the India Meteorological Department, Pune, India for providing me their expertise on climate and subseasonal forecasting. Lastly, I would like to thank my parents and my sister, without the patience and support of whom I would never have been able to complete this project.
