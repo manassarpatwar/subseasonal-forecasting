@@ -49,6 +49,10 @@ The code was implemented using python 3.7.10 using Anaconda 4.7.10 and uses the 
   
   ```pip install wandb```  
   
+  or
+  
+  ```conda install --file requirements.txt```
+  
   ## Downloading files
   
   ### SubseasonalRodeo
