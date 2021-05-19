@@ -1,5 +1,6 @@
 # Data
 data/imd/*.nc
+data/imd/*.GRD
 data/ncmrwf/*.nc
 data/interpolated/*.nc
 data/processed/*.h5
