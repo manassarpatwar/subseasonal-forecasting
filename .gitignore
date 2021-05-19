@@ -1,13 +1,14 @@
 # Data
-data/imd/*
-data/ncmrwf/*
-data/interpolated/*
+data/imd/*.nc
+data/ncmrwf/*.nc
+data/interpolated/*.nc
 data/processed/*.h5
 data/processed/climatology/*.h5
-data/dataframes/*
-data/rodeo/*
-data/climatology/*
-data/merged/*
+data/dataframes/*.h5
+data/rodeo/*.h5
+data/climatology/*.h5
+data/climatology/*.nc
+data/merged/*.h5
 wandb
 models/model_saves
 models/logs

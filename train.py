@@ -37,9 +37,9 @@ hyperparameters = {
     "target_feature": 'tmp2m',
     "horizon": 28,
     "lookback": {'past': [7, 14, 28], 'future': [7, 14, 28], 'years': 2},
-    "learning_rate": 0.001,
+    "learning_rate": 0.0005,
     "epochs": 25,
-    "batch_size": 256,
+    "batch_size": 128,
     "patience": 10,
     "loss_function": "mse",
     "architecture": "CNNLSTM",
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = plt.axes()
     ax.axis('off')
-    im = ax.imshow(temporal_image, vmin=-1.0, vmax=1.0, cmap='PiYG')
+    im = ax.imshow(temporal_image, vmin=-0.5, vmax=0.5, cmap='PiYG')
     bar = plt.colorbar(im, fraction=0.046, pad=0)
     plt.title(f"{config['architecture']} temporal similarity")
     temporal_image =  wandb.Image(plt)
