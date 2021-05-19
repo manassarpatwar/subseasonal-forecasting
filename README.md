@@ -93,7 +93,9 @@ The code was implemented using python 3.7.10 using Anaconda 4.7.10 and uses the 
   ```python preprocess.py -r``` (for Rodeo dataset)
   
   ## Train
-  Configure hyperparameter dict in train.py
+  Configure hyperparameter dict in train.py  
+  After setting the hyperparameters, run
+  
   ```python train.py```
   
   ## Latex tables
