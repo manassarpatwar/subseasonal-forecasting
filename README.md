@@ -1,7 +1,8 @@
 # Evaluating Deep Learning Models for Subseasonal Forecasting over India
 
-Code for reproducing the results in my 2021 dissertation @TheUniversityOfSheffield
 ![tmp2m visualization](visualisations/tmp2m.png?raw=true "tmp2m visualisation")
+
+Code for reproducing the results in my 2021 dissertation @TheUniversityOfSheffield
 
 Please execute all scripts from the base directory of the repository, i.e., the directory in which README.md is located
 
@@ -98,3 +99,14 @@ The code was implemented using python 3.7.10 using Anaconda 4.7.10 and uses the 
   - Export graph as csv
   - Place in results/
   - ```python results.py``` to produce the latex tables. Resulting latex tables will be saved in results/tables/
+ 
+  ## Cache files
+  ```
+  # train.py
+  31 cache_dir = os.path.join('/', 'fastdata', 'aca18mms')
+  32 os.environ['WANDB_DIR'] = cache_dir
+  33 os.environ['WANDB_IGNORE_GLOBS'] = '*.h5'
+  ```
+  By default the training files are saved in the temporary directory on bessemer.
+  You can change the storage location by changing line 31 in train.py
+  Wandb also ignores and does not upload the model to the server to save space. Comment line 33 to modify that.
