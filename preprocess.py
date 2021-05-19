@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 import numpy as np
 import netCDF4 as nc
 import pandas as pd
@@ -11,6 +14,17 @@ import argparse
 
 
 def get_imdaa_feature(feature, avg=True):
+    """
+    get_imdaa_feature fetches the dataframe if it has been created
+    for the Indian region for the given feature and creates it if it does not exist.
+    Additionally calculates climatology if the climatology file path exists in the spatial feature dictionary
+    in config for IMDAA.
+
+    :param feature: String feature name, example 'tmp2m'
+    :param avg: Boolean whether to return the 2 week average or not
+    :return: The saved/calculated dataframe from the .nc files
+    """ 
+
     data = IMDAA['spatial_features'][feature]
     feature_file_name = os.path.join(config.DATAFRAME_DIR, f"{feature}{'-14d' if avg else ''}.h5")
     if os.path.isfile(feature_file_name):
@@ -54,6 +68,15 @@ def get_imdaa_feature(feature, avg=True):
     return df
 
 def get_merged_imdaa(merge=False, save=True, avg=True):
+    """
+    get_merged_imdaa fetches the merged dataframe if it has been created
+    for the Indian region and creates it if it does not exist.
+
+    :param merge: Boolean force merge the files and not use the saved dataframe
+    :param avg: Boolean whether to return the 2 week average or not
+    :return: The saved/calculated merged dataframe from the .h5 files
+    """ 
+
     imdaa_spatial_file_name = os.path.join(config.MERGED_DATA_DIR, f"imdaa-spatial{'-14d' if avg else ''}.h5")
     if not merge and os.path.isfile(imdaa_spatial_file_name):
         print("-Loading saved merged spatial dataframe")
@@ -80,6 +103,17 @@ def get_merged_imdaa(merge=False, save=True, avg=True):
     return spatial
 
 def get_imdaa(process=False, save=True, avg=True, merge=False, calculate=False):
+    """
+    get_imdaa fetches the processed dataframe with calculated climatologies and anomalies if it has been created
+    for the Indian region and creates it if it does not exist.
+
+    :param process: Boolean force process the anomalies and not use saved dataframe
+    :param save: Boolean whether to save the dataframe or not
+    :param merge: Boolean whether to force merge the individual features or not
+    :param param calculate: Boolean whether to reindex the climatology or not
+    :return: The saved/calculated processed dataframe from the .h5 files
+    """ 
+
     imdaa_spatial_file_name = os.path.join(config.PROCESSED_DATA_DIR, f"imdaa-spatial{'-14d' if avg else ''}.h5")
 
     if not process and os.path.isfile(imdaa_spatial_file_name):
@@ -111,6 +145,15 @@ def get_imdaa(process=False, save=True, avg=True, merge=False, calculate=False):
     return spatial
 
 def get_merged_rodeo(merge=False, save=True, pad=True, res=(1.0,1.0), sg=0):
+    """
+    get_merged_rodeo fetches the merged dataframe if it has been created
+    for the Western United States region and creates it if it does not exist.
+
+    :param merge: Boolean force merge the files and not use the saved dataframe
+    :param avg: Boolean whether to return the 2 week average or not
+    :return: The saved/calculated merged dataframe from the .h5 files
+    """ 
+
     # Make sure spatial granularity is an integer
     assert isinstance(sg, int)
 
@@ -162,6 +205,17 @@ def get_merged_rodeo(merge=False, save=True, pad=True, res=(1.0,1.0), sg=0):
     return spatial    
         
 def get_rodeo(process=False, save=True, merge=False, calculate=False):
+    """
+    get_rodeo fetches the processed dataframe with calculated climatologies and anomalies if it has been created
+    for the Western United States region and creates it if it does not exist.
+
+    :param process: Boolean force process the anomalies and not use saved dataframe
+    :param save: Boolean whether to save the dataframe or not
+    :param merge: Boolean whether to force merge the individual features or not
+    :param calculate: Boolean whether to reindex the climatology or not
+    :return: The saved/calculated processed dataframe from the .h5 files
+    """ 
+
     rodeo_spatial_file_name = os.path.join(config.PROCESSED_DATA_DIR, "rodeo-spatial.h5")
     if not process and os.path.isfile(rodeo_spatial_file_name):
         print("-Loading saved rodeo spatial dataframe")
@@ -192,6 +246,17 @@ def get_rodeo(process=False, save=True, merge=False, calculate=False):
     return spatial  
 
 def get_climatology(dataset, target_feature, calculate=False, save=True):
+    """
+    get_climatology fetches the expanded climatology from a (365, lat, lon) tensor interpolated to match the
+    individual lat-lon values of the merged dataframes
+
+    :param dataset: String name of dataset, 'IMDAA' or 'RODEO'
+    :param target_feature: String name of target feature, 'tmp2m' or 'precip'
+    :param calculate: Boolean whether to reindex the climatology or not
+        :param save: Boolean whether to save the dataframe or not
+    :return: The saved/calculated processed climatology dataframe from the .h5 files
+    """ 
+
     climatology_years = config.CLIMATOLOGY_YEARS
     processed_climatology_file_name = os.path.join(config.PROCESSED_DATA_DIR, 'climatology', f"{dataset.lower()}-{target_feature}-{climatology_years[0]}-{climatology_years[1]}.h5")
     if not calculate and os.path.isfile(processed_climatology_file_name):
@@ -223,6 +288,15 @@ def get_climatology(dataset, target_feature, calculate=False, save=True):
     return df
 
 def process_target_features(dataset, spatial, target_features, mean, calculate=False):
+    """
+    process_target_features adds the climatology and anomaly columns to the merged dataframe. Fills the missing
+    target values with the mean provided.
+
+    :param dataset: String name of dataset, 'IMDAA' or 'RODEO'
+    :param spatial: Merged dataframe
+    :param target_features: Array list containing strings of target features defined in config for the dataset
+    :param save: Boolean whether to save the dataframe or not
+    """
     for feature in target_features:
         climatology = get_climatology(dataset=dataset, target_feature=feature, calculate=calculate)
         spatial[f"{feature}_target"] = np.nan
@@ -237,6 +311,14 @@ def process_target_features(dataset, spatial, target_features, mean, calculate=F
         spatial.loc[target_locations, f"{feature}_anom"] = spatial.loc[target_locations, feature] - spatial.loc[target_locations, f"{feature}_clim"]
 
 def get_merged_spatial_dataframe(dataset, avg=True, merge=False):
+    """
+    get_merged_spatial_dataframe returns the merged dataframe for the dataset provided
+
+    :param dataset: String name of dataset, 'IMDAA' or 'RODEO'
+    :param merge: Boolean force merge the files and not use the saved dataframe
+    :param avg: Boolean whether to return the 2 week average or not
+    :return: The saved/calculated merged dataframe from the .h5 files
+    """
     if isinstance(dataset, str):
         dataset = dataset.upper()
 
@@ -248,6 +330,15 @@ def get_merged_spatial_dataframe(dataset, avg=True, merge=False):
     return spatial
 
 def get_spatial_dataframe(dataset, avg=True, process=False, merge=False):
+    """
+    get_spatial_dataframe returns the processed spatial dataframe for the dataset provided
+
+    :param dataset: String name of dataset, 'IMDAA' or 'RODEO'
+    :param avg: Boolean whether to return the 2 week average or not
+    :param process: Boolean force process the anomalies and not use saved dataframe
+    :param merge: Boolean force merge the files and not use the saved dataframe
+    :return: The saved/calculated merged dataframe from the .h5 files
+    """
     if isinstance(dataset, str):
         dataset = dataset.upper()
 
@@ -259,6 +350,14 @@ def get_spatial_dataframe(dataset, avg=True, process=False, merge=False):
     return spatial
 
 def get_temporal_dataframe(merge=False, save=True):
+    """
+    get_temporal_dataframe returns the merged temporal dataframe
+
+    :param merge: Boolean force merge the files and not use the saved dataframe
+    :param save: Boolean whether to save the dataframe or not
+    :return: The saved/calculated merged temporal dataframe from the .h5 files
+    """
+
     temporal_file_name = os.path.join(config.PROCESSED_DATA_DIR, "temporal.h5")
     if not merge and os.path.isfile(temporal_file_name):
         print("-Loading saved temporal dataframe")
@@ -293,6 +392,19 @@ def get_train_data(target_months,
                     temporal_features, 
                     target_feature, 
                     dataset):
+    """
+    get_train_data returns the train data required for training
+
+    :param target_months: Array list of integers denoting the months, eg. [1,2,3,4,5,6,7,8,9,10,11,12]
+    :param horizon: Int number of days which it is predicting ahead, eg. 1, 14, 28
+    :param lookback: Lookback instance of Lookback class from utils
+    :param spatial_features: Array list of strings containing the spatial features to use ['tmp2m', 'precip', ...] (currently not used)
+    :param temporal_features: Array list of strings containing the temporal features to use ['iod', 'mei', ...]
+    :dataset: String either 'IMDAA' or 'RODEO'
+    :return: tuple (spatial, temporal, target, spatial_grid_shape) -> The spatial and temporal dataframe containing 
+    all the days from 1979 to 2019, target (dictionary) with train, validation and test dates and anomalies, spatial_grid_shape which is the number of lat, lon coordinates
+    """
+
     spatial = get_spatial_dataframe(dataset=dataset)
     temporal = get_temporal_dataframe()
     temporal = temporal[temporal_features]
@@ -332,6 +444,14 @@ def get_train_data(target_months,
     
 
 def imdaa_to_rodeo(target_feature):
+    """
+    imdaa_to_rodeo converts the imdaa data to rodeo format for the provided target feature
+    :target_feature: String 'tmp2m' or 'precip'
+    :return: The calculated imdaa to rodeo dataframe from the .h5 files
+    """
+
+    #TODO test and improve this function to match the rodeo format
+
     imdaa_spatial_file_name = f"lat_lon_date_data-contest_{target_feature}_34w.h5"
     temporal_file_name = f"date_data-contest_{target_feature}_34w.h5"
 

@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 from tensorflow import keras
 from tensorflow.keras.layers import Input, TimeDistributed, Dense, Conv2D, LSTM, Flatten, Dropout
 from tensorflow.keras.models import Model

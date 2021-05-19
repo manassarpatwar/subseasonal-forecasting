@@ -1,11 +1,13 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 import pandas as pd
 import numpy as np
 import os
 import requests
 from io import StringIO
+import config
 
-data_dir = 'data'
-dataframe_dir = os.path.join(data_dir, 'dataframes')
 
 def get_colspecs(start, width, offset, size=12):
     # Column specifications as a list of tuples. Start and end indexes for each column per row as a half closed
@@ -29,7 +31,7 @@ def mjo():
     df = df.astype({'RMM1': np.float32, 'RMM2': np.float32, 'phase': int, 'amplitude': np.float32})
     df['phase_cos'] = np.cos((2*np.pi*df['phase'])/8)
     df['phase_sin'] = np.sin((2*np.pi*df['phase'])/8)
-    df.to_hdf(os.path.join(dataframe_dir, 'mjo.h5'), key='data')
+    df.to_hdf(os.path.join(config.DATAFRAME_DIR, 'mjo.h5'), key='data')
     return df
 
 def mei():
@@ -48,7 +50,7 @@ def mei():
     df.index = df.index.rename('start_date')
     df = df.astype(np.float32)
 
-    df.to_hdf(os.path.join(dataframe_dir, 'mei.h5'), key='data')
+    df.to_hdf(os.path.join(config.DATAFRAME_DIR, 'mei.h5'), key='data')
 
 def iod():
     # Bi monthly values
@@ -66,7 +68,7 @@ def iod():
     # df['iod-2'] = df['iod-1'].shift(-1)
     df = df.astype(np.float32)
 
-    df.to_hdf(os.path.join(dataframe_dir, 'iod.h5'), key='data')
+    df.to_hdf(os.path.join(config.DATAFRAME_DIR, 'iod.h5'), key='data')
 
 if __name__ == '__main__':
     mjo()

@@ -1,3 +1,6 @@
+#!/bin/bash
+# Author: Manas Sarpatwar
+# Date: 19/05/2021
 
 cdo remapbil,targetgrid imd/imd_temp.nc interpolated/imd_temp-1x1.nc
 # Calculate rolling 14 day mean

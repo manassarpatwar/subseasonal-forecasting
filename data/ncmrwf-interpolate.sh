@@ -1,3 +1,7 @@
+#!/bin/bash
+# Author: Manas Sarpatwar
+# Date: 19/05/2021
+
 start=1979
 end=2019
 for ((i = $start; i <= $end; i++))

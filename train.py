@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 import numpy as np
 import pandas as pd
 from preprocess import get_train_data

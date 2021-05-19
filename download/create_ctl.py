@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 import sys
 
 data_dir = "data/imd"

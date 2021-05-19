@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np

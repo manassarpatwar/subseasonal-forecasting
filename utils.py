@@ -1,3 +1,6 @@
+# Author: Manas Saraptwar
+# Date: 19/05/2021
+
 from collections import namedtuple
 import pandas as pd
 import numpy as np
@@ -21,14 +24,17 @@ class Lookback:
     def length(self):
          return (len(self.past)+1)+(len(self.past)+len(self.future)+1)*self.years
 
-    def extra_year(self, year, target_month, horizon):
-        if not self.past:
-            return False
-
-        days = pd.date_range(str(year), f"{year}-{target_month}-01", freq='D', closed='left')
-        return days.size-horizon-self.past[-1] < 0
-
     def min_target_date(self, min_date, start_year, start_month, horizon):
+        """
+        min_target_date returns the minimum target date that is possible for the provided start year, month and horizon.
+
+        :param min_date: pd.Timestamp minimum date of the train dataset
+        :param start_year: Start year of the train dataset
+        :param start_month: Start month of the train dataset
+        :param horizon: Int number of days which it is predicting ahead, eg. 1, 14, 28
+        :return: pd.Timestamp min date
+        """
+
         if isinstance(min_date, str):
             min_date = pd.Timestamp(min_date)
 
@@ -39,6 +45,16 @@ class Lookback:
         return target_date
     
     def split_years(self, split, horizon):
+        """
+        split_years returns the train, valdidation and target years as a python slice, slice and array of pd.Timestamps respectively
+
+        :param min_date: pd.Timestamp minimum date of the train dataset
+        :param start_year: Start year of the train dataset
+        :param start_month: Start month of the train dataset
+        :param horizon: Int number of days which it is predicting ahead, eg. 1, 14, 28
+        :return: pd.Timestamp min date
+        """
+
         assert len(split) == 4, "Invalid split provided"
         years = list(map(str, split))
         years = list(map(pd.Timestamp, years))
@@ -48,6 +64,14 @@ class Lookback:
         return train_years, validation_years, test_years
 
     def dates(self, date, horizon):
+        """
+        dates returns the slice of min, max date for the given past, future and year values as well as
+        the 1D mask over the temporal dimension
+
+        :param date: Target date
+        :param horizon: Int number of days which it is predicting ahead, eg. 1, 14, 28
+        :return: Tuple (slice, mask) 
+        """
         if isinstance(date, str):
             date = pd.Timestamp(date)
         end = date-pd.DateOffset(days=horizon)
@@ -65,6 +89,15 @@ def inverse(value, mean, std):
     return value*std+mean
 
 def get_image(values, grid_shape, mask):
+    """
+    get_iamge returns the 2D image from the 1D predictions of the target locations
+    the 1D mask over the temporal dimension
+
+    :param values: 1D np.array Predictions/Target location values
+    :param grid_shape: Tuple shape to reshape the values into
+    :param mask: Boolean 1D mask to fill the 2D image with provided values
+    :return: 2D np.array 
+    """
     image = np.empty(grid_shape).flatten()
     image[:] = np.nan
     image[mask] = values

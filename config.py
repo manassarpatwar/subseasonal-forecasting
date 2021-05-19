@@ -1,3 +1,6 @@
+# Author: Manas Sarpatwar
+# Date: 19/05/2021
+
 import os
 
 DATA_DIR = "data"
