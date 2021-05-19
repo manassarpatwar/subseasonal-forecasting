@@ -5,44 +5,55 @@
 start=1979
 end=2019
 
-feature="rf" #rf/temp
-variable="rainfall" #rainfall/maxtemp/mintemp
-key="rain" #rain/maxtemp/mintemp
+rf(){
+    curl -sX POST -F "rain=$1" https://www.imdpune.gov.in/Clim_Pred_LRF_New/rainfall.php -o data/imd/imd_rainfall_"$1"0101-"$1"1231.GRD
+    python download/create_ctl.py rf $1 imd_rainfall_"$1"0101-"$1"1231
+    cdo -f nc import_binary data/imd/imd_rainfall_"$1"0101-"$1"1231.ctl data/imd/imd_rainfall_"$1"0101-"$1"1231.nc
+    rm data/imd/imd_rainfall_"$1"0101-"$1"1231.ctl
+    rm data/imd/imd_rainfall_"$1"0101-"$1"1231.GRD
+}
 
 for ((i = $start; i <= $end; i++))
 do
-	curl -X POST -F "$key=$i" https://www.imdpune.gov.in/Clim_Pred_LRF_New/"$variable".php -o data/imd/imd_"$variable"_"$i"0101-"$i"1231.GRD
-	python download/create_ctl.py $feature $i imd_"$variable"_"$i"0101-"$i"1231
-	cdo -f nc import_binary data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl data/imd/imd_"$variable"_"$i"0101-"$i"1231.nc
-	rm data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl
+    rf $i &
 done
+wait
 
-cdo mergetime data/imd/imd_"$variable"_*.nc data/imd/imd_"$variable".nc
+cdo mergetime data/imd/imd_rainfall_*.nc data/imd/imd_rf.nc
+rm data/imd/imd_rainfall_*.nc
 
-feature="temp" #rf/temp
-variable="maxtemp" #rainfall/maxtemp/mintemp
-key="maxtemp" #rain/maxtemp/mintemp
+maxtemp(){
+    curl -sX POST -F "maxtemp=$1" https://www.imdpune.gov.in/Clim_Pred_LRF_New/maxtemp.php -o data/imd/imd_maxtemp_"$1"0101-"$1"1231.GRD
+    python download/create_ctl.py temp $1 imd_maxtemp_"$1"0101-"$1"1231
+    cdo -f nc import_binary data/imd/imd_maxtemp_"$1"0101-"$1"1231.ctl data/imd/imd_maxtemp_"$1"0101-"$1"1231.nc
+    rm data/imd/imd_maxtemp_"$1"0101-"$1"1231.ctl
+    rm data/imd/imd_maxtemp_"$1"0101-"$1"1231.GRD
+}
+
 for ((i = $start; i <= $end; i++))
 do
-	curl -X POST -F "$key=$i" https://www.imdpune.gov.in/Clim_Pred_LRF_New/"$variable".php -o data/imd/imd_"$variable"_"$i"0101-"$i"1231.GRD
-	python download/create_ctl.py $feature $i imd_"$variable"_"$i"0101-"$i"1231
-	cdo -f nc import_binary data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl data/imd/imd_"$variable"_"$i"0101-"$i"1231.nc
-	rm data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl
+	maxtemp $i &
 done
+wait
 
-cdo mergetime data/imd/imd_"$variable"_*.nc data/imd/imd_"$variable".nc
+cdo mergetime data/imd/imd_maxtemp_*.nc data/imd/imd_maxtemp.nc
+rm data/imd/imd_maxtemp_*.nc
 
-feature="temp" #rf/temp
-variable="mintemp" #rainfall/maxtemp/mintemp
-key="mintemp" #rain/maxtemp/mintemp
+mintemp(){
+    curl -sX POST -F "mintemp=$1" https://www.imdpune.gov.in/Clim_Pred_LRF_New/mintemp.php -o data/imd/imd_mintemp_"$1"0101-"$1"1231.GRD
+    python download/create_ctl.py temp $1 imd_mintemp_"$1"0101-"$1"1231
+    cdo -f nc import_binary data/imd/imd_mintemp_"$1"0101-"$1"1231.ctl data/imd/imd_mintemp_"$1"0101-"$1"1231.nc
+    rm data/imd/imd_mintemp_"$1"0101-"$1"1231.ctl
+    rm data/imd/imd_mintemp_"$1"0101-"$1"1231.GRD
+}
+
 for ((i = $start; i <= $end; i++))
 do
-	curl -X POST -F "$key=$i" https://www.imdpune.gov.in/Clim_Pred_LRF_New/"$variable".php -o data/imd/imd_"$variable"_"$i"0101-"$i"1231.GRD
-	python download/create_ctl.py $feature $i imd_"$variable"_"$i"0101-"$i"1231
-	cdo -f nc import_binary data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl data/imd/imd_"$variable"_"$i"0101-"$i"1231.nc
-	rm data/imd/imd_"$variable"_"$i"0101-"$i"1231.ctl
+	mintemp $i &
 done
+wait
 
-cdo mergetime data/imd/imd_"$variable"_*.nc data/imd/imd_"$variable".nc
+cdo mergetime data/imd/imd_mintemp_*.nc data/imd/imd_mintemp.nc
+rm data/imd/imd_mintemp_*.nc
 
-cdo ensmean imd_maxtemp.nc imd_mintemp.nc imd_temp.nc
+cdo ensmean data/imd/imd_maxtemp.nc data/imd/imd_mintemp.nc data/imd/imd_temp.nc
